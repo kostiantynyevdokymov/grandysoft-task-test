@@ -1,7 +1,7 @@
 import React from 'react';
-import { render } from 'react-dom';
 import Line from 'components/line/Line';
 import Point from 'components/point/Point';
+import CollisionPoint from 'components/collisionpoint/CollisionPoint';
 
 const FPS = 1000 / 60;
 const Scale = 1 / (60 * 3);
@@ -66,98 +66,104 @@ class CanvasComponent extends React.Component {
       });
     }
   }
-}
-
-contextMenu(evt) {
+  contextMenu(evt) {
     // cancel drawing on right mouse click
-    if (this.state.drawing)
-        this.setState({ drawing: false });
-}
-mouseMove(evt) {
+    if (this.state.drawing) this.setState({ drawing: false });
+  }
+  mouseMove(evt) {
     // Updating the estimated line when moving the mouse cursor
     if (this.state.drawing) {
-        this.setState((state) => {
-            return {
-                temp: {
-                    startPoint: state.temp.startPoint,
-                    endPoint: Point.createPointFromEvent(evt),
-                    drawing: state.temp.drawing
-                }
-            };
-        })
+      this.setState(state => {
+        return {
+          temp: {
+            startPoint: state.temp.startPoint,
+            endPoint: Point.createPointFromEvent(evt),
+            drawing: state.temp.drawing,
+          },
+        };
+      });
     }
-}
+  }
 
-componentDidMount() {
+  componentDidMount() {
     const context = this.lineCanvas.getContext('2d');
     this.timerId = setInterval(() => {
-        // drawing lines 
-        context.clearReact(0, 0, this.props.width, this.props.height);
-        if (this.state.lines) {
-            this.state.lines.forEach((line) => {
-                //If the "Collapse lines" button was pressed, the lines are reduced for each frame until they are deleted
-                if (this.state.collapse) {
-                    line.scale();
-                }
-                line.draw(context);
-            });
+      // drawing lines
+      context.clearRect(0, 0, this.props.width, this.props.height);
+      if (this.state.lines) {
+        this.state.lines.forEach(line => {
+          //If the "Collapse lines" button was pressed, the lines are reduced for each frame until they are deleted
+          if (this.state.collapse) {
+            line.scale();
+          }
+          line.draw(context);
+        });
+      }
+      //Drawing line intersections
+      if (this.state.lines.length > 1) {
+        const lines = this.state.lines;
+        for (let i = 1; i < lines.length; i += 1) {
+          for (let a = 0; a < i; a += 1) {
+            let result = lines[i].cross(lines[a]);
+            if (CollisionPoint.isCollisionPoint(result)) result.draw(context);
+          }
         }
-        //Drawing line intersections
-        if (this.state.lines.length > 1) {
-            const lines = this.state.lines;
-            for (let i = 1; i < lines.length; i += 1) {
-                for (let a = 0; a < i; a += 1) {
-                    let result = lines[i].cross(lines[a]);
-                    if (CollisionPoint.isCollisionPoint(result))
-                        result.draw(context);
-                }
-            }
-        }
-        // Drawing the line the user wants to create, along with finding intersections for it
-        if (this.state.drawing) {
-            const tempLine = new Line(new Point(this.state.temp.startPoint.x, this.state.temp.startPoint.y), new Point(this.state.temp.endPoint.y));
-            tempLine.draw(context);
-            this.state.lines.forEach((line) => {
-                const result = tempLine.cross(line);
-                if (CollisionPoint.isCollisionPoint(result)) {
-                    result.draw(context);
-                }
-            });
-        }
+      }
+      // Drawing the line the user wants to create, along with finding intersections for it
+      if (this.state.drawing) {
+        const tempLine = new Line(
+          new Point(this.state.temp.startPoint.x, this.state.temp.startPoint.y),
+          new Point(this.state.temp.endPoint.y)
+        );
+        tempLine.draw(context);
+        this.state.lines.forEach(line => {
+          const result = tempLine.cross(line);
+          if (CollisionPoint.isCollisionPoint(result)) {
+            result.draw(context);
+          }
+        });
+      }
     }, FPS);
-}
-componentWillUnmount() {
-		clearInterval(this.timerId);
-}
-handleCollapse(evt) {
+  }
+  componentWillUnmount() {
+    clearInterval(this.timerId);
+  }
+  handleCollapse(evt) {
     // inizaliation delete lines
     if (this.state.lines.length > 0) {
-        this.state.lines.forEach((l) => l.setScale(Scale));
-        this.setState({ collapse: true });
-        setTimeout(() => {
-            this.setState({
-                lines: [],
-                temp: {
-                    startPoint: new Point(),
-                    endPoint: new Point(),
-                },
-                drawing: false,
-                collapse: false
-            })
-        }, Collapetime);
+      this.state.lines.forEach(l => l.setScale(Scale));
+      this.setState({ collapse: true });
+      setTimeout(() => {
+        this.setState({
+          lines: [],
+          temp: {
+            startPoint: new Point(),
+            endPoint: new Point(),
+          },
+          drawing: false,
+          collapse: false,
+        });
+      }, Collapetime);
     }
-    }
-render() {
-    return <div className='wrap-canvas'>
-        <canvas className='canvas'
-            ref={this.setLineCanvasRef}
-            onClick={this.handleClick}
-            onMouseMove={this.mouseMove}
-            onContextMenu={this.contextMenu}
-            width={this.props.width}
-            height={this.props.height} />
-        <button className='button'
-            onClick={this.handleCollapse}>collapse lines</button>
-    </div>
+  }
+  render() {
+    return (
+      <div className="wrap-canvas">
+        <canvas
+          className="canvas"
+          ref={this.setLineCanvasRef}
+          onClick={this.handleClick}
+          onMouseMove={this.mouseMove}
+          onContextMenu={this.contextMenu}
+          width={this.props.width}
+          height={this.props.height}
+        />
+        <button className="button" onClick={this.handleCollapse}>
+          collapse lines
+        </button>
+      </div>
+    );
+  }
 }
+
 export default CanvasComponent;

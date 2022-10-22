@@ -1,4 +1,5 @@
 import Point from 'components/point/Point';
+import Collision from 'components/collision/Collision';
 
 class Line {
   constructor(start, end) {
@@ -21,7 +22,7 @@ class Line {
   }
   draw(context) {
     context.beginPath();
-    context.moveTo(this.start.x, this.begin.y);
+    context.moveTo(this.start.x, this.start.y);
     context.lineTo(this.end.x, this.end.y);
     context.stroke();
   }
